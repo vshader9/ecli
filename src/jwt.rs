@@ -77,29 +77,33 @@ impl fmt::Display for MyHeader {
 
 pub fn sign(opts: &SignOpts) {
     let alg = opts.alg.parse::<Algorithm>().unwrap_or(Algorithm::HS256);
+    // todo这里可以对不同算法的签名进行不同的处理
     let header = MyHeader::new(Header::new(alg));
     let claims = Claims::new(opts);
     let encoding_key = EncodingKey::from_secret(opts.secret.as_bytes());
     match encode(&header, &claims, &encoding_key) {
-        Ok(token) => println!("Encoded - {:?}\n{}\n{}\n{}", &alg, &header, &claims, &token),
+        Ok(token) => println!(
+            "Encode - {:?}\n{}\n{}\n生成的token:\n{}",
+            &alg, &header, &claims, &token
+        ),
         Err(e) => println!("签名失败：{:?}", e),
     }
 }
 
 pub fn verify(opts: &VerifyOpts) {
     let alg = opts.alg.parse::<Algorithm>().unwrap_or(Algorithm::HS256);
-    println!("{:?}", alg);
     let token = opts.token.as_str();
     let decoding_key = DecodingKey::from_secret(opts.secret.as_bytes());
     let mut validation = Validation::new(alg);
     validation.validate_aud = false;
-    validation.validate_exp = false;
+    validation.validate_exp = true;
     match decode::<Claims>(token, &decoding_key, &validation) {
         Ok(token_data) => println!(
-            "Decoded\n----------\n{}\n{}",
+            "Decode - {:?}\n----------\n{}\n{}\n验证结果：正确",
+            &alg,
             MyHeader::new(token_data.header),
             &token_data.claims
         ),
-        Err(e) => println!("验证失败：{:?}", e),
+        Err(e) => println!("验证结果：失败\n失败原因：{:?}", e),
     }
 }
